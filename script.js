@@ -2,7 +2,7 @@ const symptomInput = document.getElementById("symptomInput");
 const checkBtn = document.getElementById("checkBtn");
 const resultsDiv = document.getElementById("results");
 
-// Rule-based symptom → possible conditions
+// Symptom → possible conditions
 const symptomMap = {
   "fever": ["Flu", "Common Cold", "COVID-19"],
   "cough": ["Common Cold", "Flu", "Bronchitis"],
@@ -21,7 +21,7 @@ const synonymMap = {
 };
 
 // -------------------
-// Levenshtein distance for fuzzy matching
+// Levenshtein distance
 function levenshteinDistance(a, b) {
   const matrix = Array.from({ length: b.length + 1 }, () => []);
   for (let i = 0; i <= b.length; i++) matrix[i][0] = i;
@@ -36,16 +36,23 @@ function levenshteinDistance(a, b) {
   return matrix[b.length][a.length];
 }
 
-// Find closest symptom (for typos)
+// Preprocess: remove extra spaces, merge letters if split weirdly
+function normalizeWord(word) {
+  return word.toLowerCase().replace(/\s+/g, '');
+}
+
+// Find closest symptom (with preprocessing)
 function getClosestSymptom(word) {
-  word = word.toLowerCase().trim();
-  word = synonymMap[word] || word; // apply synonym mapping first
+  word = normalizeWord(word);
+  word = synonymMap[word] || word;
+
   let closest = null;
   let minDistance = Infinity;
 
   for (let symptom in symptomMap) {
-    const dist = levenshteinDistance(word, symptom);
-    if (dist < minDistance && dist <= 2) { // allow up to 2 character differences
+    const normSymptom = normalizeWord(symptom);
+    const dist = levenshteinDistance(word, normSymptom);
+    if (dist < minDistance && dist <= 2) { // up to 2 edits away
       minDistance = dist;
       closest = symptom;
     }
@@ -56,7 +63,7 @@ function getClosestSymptom(word) {
 
 // Check symptoms input
 function checkSymptoms(input) {
-  const words = input.toLowerCase().split(/,|\s+/);
+  const words = input.split(/,|\s+/); // split by commas or spaces
   const results = new Set();
 
   words.forEach(word => {
